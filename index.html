@@ -52,36 +52,21 @@
 
     <script>
         async function fetchAuctionData() {
-            const response = await fetch('https://www.ebay.com/sch/i.html?_oaa=1&_dcat=261328&_fsrp=1&LH_Auction=1&_from=R40&campid=5338113828&LH_TitleDesc=0&customid=top50mostwatchedebaysportscardauctiontracker&toolid=10001&mkcid=1&_stpos=33708&_nkw=-box+-grab+-case+-repack+-minus+-possible+-chance+-pick&_sacat=261328&siteid=0&mkrid=711-53200-19255-0&_fcid=1&_sop=5');
-            const text = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(text, 'text/html');
-            const items = doc.querySelectorAll('.s-item');
-
-            let auctions = [];
-            items.forEach(item => {
-                const title = item.querySelector('.s-item__title').innerText;
-                const priceText = item.querySelector('.s-item__price').innerText.replace('$', '').replace(',', '');
-                const price = parseFloat(priceText);
-                const bidsText = item.querySelector('.s-item__bids').innerText.match(/\d+/);
-                const bids = bidsText ? parseInt(bidsText[0]) : 0;
-                const link = item.querySelector('.s-item__link').href;
-
-                if (bids > 0) {
-                    auctions.push({
-                        player: title,
-                        price,
-                        bids,
-                        link
-                    });
+            console.log('Fetching auction data...');
+            try {
+                const response = await fetch('/api/ebay-auctions');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
                 }
-            });
+                const data = await response.json();
+                console.log('Data fetched successfully');
+                const auctions = data.auctions;
 
-            // Sort auctions by number of bids, descending and get the first 10
-            auctions.sort((a, b) => b.bids - a.bids);
-            auctions = auctions.slice(0, 10);
-
-            return auctions;
+                return auctions;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return [];
+            }
         }
 
         function updateTicker(auctions) {
@@ -95,12 +80,8 @@
         }
 
         async function refreshAuctions() {
-            try {
-                const auctions = await fetchAuctionData();
-                updateTicker(auctions);
-            } catch (error) {
-                console.error('Error fetching auction data:', error);
-            }
+            const auctions = await fetchAuctionData();
+            updateTicker(auctions);
         }
 
         setInterval(refreshAuctions, 3600000); // Refresh every hour
